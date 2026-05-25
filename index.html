@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPI Fraud Shield | Hybrid Resampling Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <style>
+        :root { 
+            --primary-accent: #6366f1; 
+            --sidebar-bg: #0f172a; 
+            --body-bg: #f8fafc;
+            --hybrid-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        }
+
+        body { background-color: var(--body-bg); font-family: 'Inter', sans-serif; color: #1e293b; }
+        .sidebar { background: var(--sidebar-bg); color: white; min-height: 100vh; position: fixed; width: 260px; z-index: 1000; border-right: 1px solid rgba(255,255,255,0.1); }
+        .main-content { margin-left: 260px; padding: 40px; }
+        
+        .card { border: none; border-radius: 16px; box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05); transition: all 0.3s ease; }
+        .resampling-header { background: var(--hybrid-gradient); color: white; border-radius: 12px 12px 0 0; padding: 15px 20px; }
+        
+        .form-range::-webkit-slider-thumb { background: var(--primary-accent); }
+        .badge-hybrid { background: rgba(99, 102, 241, 0.1); color: var(--primary-accent); border: 1px solid var(--primary-accent); }
+        
+        .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .dot-online { background-color: #10b981; box-shadow: 0 0 8px #10b981; }
+
+        .table-container { background: white; border-radius: 16px; padding: 24px; }
+        .nav-link { color: #94a3b8; border-radius: 10px; margin-bottom: 5px; transition: 0.3s; }
+        .nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.1); color: #fff !important; }
+        
+        /* Modal Customization */
+        .modal-content { border-radius: 20px; border: none; overflow: hidden; }
+        .font-monospace { font-family: 'JetBrains Mono', monospace !important; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar d-flex flex-column p-4">
+    <div class="d-flex align-items-center mb-5 ps-2">
+        <div class="bg-primary rounded-3 p-2 me-3"><i class="bi bi-layers-half text-white fs-4"></i></div>
+        <h4 class="mb-0 fw-bold">HybridShield</h4>
+    </div>
+    
+    <ul class="nav flex-column mb-auto">
+        <li class="nav-item"><a href="/" class="nav-link active py-3 px-3"><i class="bi bi-cpu-fill me-3"></i>ML Dashboard</a></li>
+        <li class="nav-item"><a href="#" class="nav-link py-3 px-3"><i class="bi bi-database-fill-gear me-3"></i>Data Pipeline</a></li>
+    </ul>
+
+    <div class="mt-auto">
+        <button onclick="clearLogs()" class="btn btn-outline-danger btn-sm w-100 border-0"><i class="bi bi-trash3 me-2"></i>Reset Engine</button>
+    </div>
+</div>
+
+<div class="main-content">
+    <div class="row align-items-center mb-5">
+        <div class="col-md-7">
+            <h2 class="fw-bold"><span class="status-dot dot-online"></span>Imbalanced Data Handler</h2>
+            <p class="text-secondary">Hybrid SMOTE + Random Undersampling Middleware</p>
+        </div>
+        <div class="col-md-5 text-end">
+            <span class="badge badge-hybrid px-3 py-2">Algorithm: SMOTE-Tomek Hybrid</span>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="resampling-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-sliders2-vertical me-2"></i>Resampling Strategy Control</h6>
+                    <span class="small opacity-75">Auto-balancing enabled</span>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-md-6 border-end">
+                            <label class="form-label fw-bold small text-primary">OVERSAMPLING (SMOTE)</label>
+                            <p class="text-muted small">Synthesize fraud cases to match safe samples.</p>
+                            <input type="range" class="form-range" id="smoteRange" min="0.1" max="1.0" step="0.1" value="0.5">
+                            <div class="d-flex justify-content-between small fw-bold"><span>0.1x</span><span id="smoteVal">0.5x</span></div>
+                        </div>
+                        <div class="col-md-6 ps-4">
+                            <label class="form-label fw-bold small text-danger">UNDERSAMPLING (Random)</label>
+                            <p class="text-muted small">Reduce majority class to balance noise.</p>
+                            <input type="range" class="form-range" id="underRange" min="0.1" max="1.0" step="0.1" value="0.8">
+                            <div class="d-flex justify-content-between small fw-bold"><span>0.1x</span><span id="underVal">0.8x</span></div>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-top">
+                        <button class="btn btn-primary btn-sm px-4 rounded-pill" onclick="applyHybridConfig()">Update Model Weights</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card h-100 p-4 bg-dark text-white">
+                <h6 class="fw-bold mb-4 opacity-75">TRAINING DISTRIBUTION</h6>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between small mb-1"><span>Minority (Fraud)</span><span>48%</span></div>
+                    <div class="progress bg-secondary" style="height: 8px;"><div class="progress-bar bg-primary" style="width: 48%"></div></div>
+                </div>
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between small mb-1"><span>Majority (Safe)</span><span>52%</span></div>
+                    <div class="progress bg-secondary" style="height: 8px;"><div class="progress-bar bg-info" style="width: 52%"></div></div>
+                </div>
+                <div class="bg-secondary bg-opacity-25 rounded p-2 text-center">
+                    <small class="text-info"><i class="bi bi-info-circle me-1"></i> Data effectively balanced</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card p-4 border-0 mb-4">
+                <h6 class="fw-bold mb-4 text-primary small">TRANSACTION INJECTOR</h6>
+                <form id="txForm">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Transaction Amount</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0">₹</span>
+                            <input type="number" name="amount" class="form-control bg-light border-0" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold">Anomaly Features (V1-V28 Vector)</label>
+                        <input type="text" class="form-control bg-light border-0" placeholder="0.45, -1.2, 0.88...">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-3 rounded-3 shadow-sm">Analyze with Hybrid Model</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="table-container shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h6 class="fw-bold mb-0 small">REAL-TIME CLASSIFICATION LOG</h6>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="simToggle" {% if sim_on %}checked{% endif %} onclick="toggleSim()">
+                        <label class="form-check-label small fw-bold" for="simToggle">Simulation</label>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr class="text-muted small">
+                                <th>TX ID</th>
+                                <th>Amount</th>
+                                <th>Resampled?</th>
+                                <th class="text-end">Engine Decision</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logTable">
+                            {% for tx in history %}
+                            <tr>
+                                <td class="font-monospace small text-muted">#{{ tx.id[:8] }}</td>
+                                <td class="fw-bold">₹{{ tx.amount }}</td>
+                                <td><span class="badge rounded-pill bg-light text-dark border small font-weight-normal">SMOTE-Applied</span></td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-{{ tx.color }} px-3 rounded-pill fw-bold"
+                                            onclick="showDetails('{{ tx.id }}', '{{ tx.amount }}', '{{ tx.risk }}', '{{ tx.details }}', '{{ tx.status }}')">
+                                        {{ tx.status }}
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <div id="modalHeader" class="modal-header text-white border-0 py-3">
+                <h6 class="modal-title fw-bold">Transaction Analysis Report</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <p class="text-muted small mb-1">REFERENCE ID</p>
+                <h6 id="modalID" class="font-monospace mb-4"></h6>
+                
+                <p class="text-muted small mb-1">TRANSACTION VALUE</p>
+                <h2 id="modalAmount" class="fw-bold mb-4"></h2>
+                
+                <span id="modalStatusBadge" class="badge rounded-pill px-4 py-2 fs-6 mb-4"></span>
+                
+                <hr class="opacity-10">
+                
+                <div class="text-start">
+                    <label class="fw-bold small text-muted text-uppercase mb-2 d-block">AI Decision Reasoning</label>
+                    <div id="modalReason" class="p-3 bg-light rounded text-dark border-start border-4"></div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <span class="text-muted small">Risk Probability:</span>
+                    <strong id="modalRisk" class="text-dark"></strong>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light w-100 py-2 rounded-pill" data-bs-dismiss="modal">Close Report</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Hybrid Control Listeners
+    const smoteRange = document.getElementById('smoteRange');
+    const underRange = document.getElementById('underRange');
+    
+    smoteRange.oninput = function() { document.getElementById('smoteVal').innerText = this.value + 'x'; }
+    underRange.oninput = function() { document.getElementById('underVal').innerText = this.value + 'x'; }
+
+    function applyHybridConfig() {
+        alert("Model re-balancing initiated. The decision boundary is being updated...");
+    }
+
+    // Modal Trigger Logic
+    function showDetails(id, amount, risk, details, status) {
+        document.getElementById('modalID').innerText = id;
+        document.getElementById('modalAmount').innerText = "₹" + amount;
+        document.getElementById('modalRisk').innerText = risk;
+        document.getElementById('modalReason').innerText = details;
+        
+        let header = document.getElementById('modalHeader');
+        let badge = document.getElementById('modalStatusBadge');
+        let reasonBox = document.getElementById('modalReason');
+        
+        if(status === 'BLOCKED' || status === 'FRAUD') {
+            header.style.backgroundColor = "#ef4444"; // Red
+            badge.className = "badge bg-danger rounded-pill";
+            badge.innerText = "THREAT BLOCKED";
+            reasonBox.className = "p-3 bg-light rounded text-dark border-start border-4 border-danger";
+        } else {
+            header.style.backgroundColor = "#10b981"; // Green
+            badge.className = "badge bg-success rounded-pill";
+            badge.innerText = "VERIFIED SAFE";
+            reasonBox.className = "p-3 bg-light rounded text-dark border-start border-4 border-success";
+        }
+
+        var myModal = new bootstrap.Modal(document.getElementById('detailModal'));
+        myModal.show();
+    }
+
+    // Form logic
+    document.getElementById('txForm').onsubmit = async (e) => {
+        e.preventDefault();
+        await fetch('/predict', { method: 'POST', body: new FormData(e.target) });
+        location.reload();
+    };
+    
+    function toggleSim() { fetch('/toggle_sim').then(() => location.reload()); }
+    function clearLogs() { if(confirm("Wipe all data?")) fetch('/clear').then(() => location.reload()); }
+</script>
+
+</body>
+</html>
